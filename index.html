@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Craft Lab Zuzo: Laboratorio determinístico NO IA para sintetizar prototipos HTML funcionales a partir de imagen local, texto de referencia y preferencias." />
+  <title>Craft Lab Zuzo · Sintetizador Determinístico de Prototipos Web (NO IA)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-workspace">Saltar al espacio de trabajo</a>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <!-- Emblema geométrico original de Craft Lab Zuzo (sin logos de terceros) -->
+        <svg class="brand-logo" viewBox="0 0 44 44" width="40" height="40" role="img" aria-label="Emblema geométrico original Craft Lab Zuzo">
+          <rect x="2" y="2" width="40" height="40" rx="10" fill="#131b24" stroke="#2dd4bf" stroke-width="2" />
+          <polygon points="22,8 35,16 35,28 22,36 9,28 9,16" fill="none" stroke="#f59e0b" stroke-width="2" />
+          <line x1="22" y1="8" x2="22" y2="36" stroke="#2dd4bf" stroke-width="1.6" />
+          <line x1="9" y1="22" x2="35" y2="22" stroke="#2dd4bf" stroke-width="1.6" />
+          <circle cx="22" cy="22" r="4" fill="#f59e0b" />
+        </svg>
+        <div>
+          <div class="brand-title-row">
+            <h1 class="brand-title">Craft Lab Zuzo</h1>
+            <span class="badge badge-no-ia" title="Generación algorítmica 100% determinística sin modelos de Inteligencia Artificial">NO IA · DETERMINÍSTICO</span>
+          </div>
+          <p class="brand-subtitle">Sintetizador local de prototipos HTML funcionales · Sin red · Sin terceros · Sin persistencia</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" id="btn-load-example" class="btn btn-secondary">
+          Cargar ejemplo propio
+        </button>
+        <button type="button" id="btn-reset" class="btn btn-ghost" aria-label="Reiniciar todos los controles y limpiar memoria">
+          Reiniciar todo
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="status-bar-wrapper" role="region" aria-label="Estado del sintetizador">
+    <div id="status-banner" class="status-banner" role="status" aria-live="polite" aria-atomic="true">
+      Listo: ejemplo propio cargado en memoria efímera. Modifica cualquier señal o preferencia para regenerar.
+    </div>
+  </div>
+
+  <main id="main-workspace" class="workspace-grid">
+    <!-- Panel Izquierdo: Entradas y Preferencias -->
+    <section class="panel controls-panel" aria-labelledby="controls-heading">
+      <div class="panel-header">
+        <h2 id="controls-heading" class="panel-title">1. Señales de Entrada y Preferencias</h2>
+        <span class="seed-readout" id="live-seed-badge" title="Huella FNV-1a de 32 bits">ZUZ-NOIA-00000000</span>
+      </div>
+
+      <form id="craft-form" novalidate>
+        <!-- Bloque A: Imagen Local -->
+        <fieldset class="control-group">
+          <legend class="group-legend">A. Imagen Propia (Procesamiento Local en Memoria)</legend>
+          <p class="field-hint" id="image-hint">
+            Selecciona o arrastra una imagen desde tu dispositivo. Se analiza con Canvas local (color dominante, luminancia y proporción) sin subir nada a la red.
+          </p>
+
+          <div class="dropzone" id="image-dropzone">
+            <label for="image-input" class="dropzone-label">
+              <span class="dropzone-title">Cargar archivo de imagen local</span>
+              <span class="dropzone-formats">PNG, JPG, WEBP, GIF o SVG · 100% en navegador</span>
+            </label>
+            <input
+              type="file"
+              id="image-input"
+              accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+              aria-describedby="image-hint"
+            />
+          </div>
+
+          <div id="image-telemetry-card" class="telemetry-card" hidden>
+            <div class="telemetry-thumb-wrap">
+              <img id="image-thumb" src="" alt="Miniatura de la imagen local cargada" class="telemetry-thumb" />
+            </div>
+            <div class="telemetry-details">
+              <div class="telemetry-head">
+                <strong id="image-name" class="telemetry-filename">imagen.svg</strong>
+                <button type="button" id="btn-clear-image" class="btn-inline-clear">Quitar imagen</button>
+              </div>
+              <div class="telemetry-chips">
+                <span class="chip" id="chip-dimensions">0×0 px</span>
+                <span class="chip" id="chip-aspect">Proporción</span>
+                <span class="chip" id="chip-luminance">Lum: 0%</span>
+                <span class="chip" id="chip-swatch">
+                  <span class="swatch-dot" id="swatch-dom"></span>
+                  <span class="swatch-dot" id="swatch-sec"></span>
+                  <span id="swatch-label">RGB</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Bloque B: Texto de Referencia -->
+        <fieldset class="control-group">
+          <legend class="group-legend">B. Texto de Referencia y Estructura</legend>
+          <div class="field-row-between">
+            <label for="reference-text" class="field-label">Notas, titular, puntos clave y métricas</label>
+            <span class="char-counter" id="text-counter">0 palabras</span>
+          </div>
+          <p class="field-hint" id="text-hint">
+            Primera línea: título. Segunda línea: resumen. Usa guiones (<code>-</code>) para especificaciones, <code>Métrica: valor etiqueta</code> para KPIs y <code>CTA: texto</code> para el botón.
+          </p>
+          <textarea
+            id="reference-text"
+            rows="8"
+            aria-describedby="text-hint"
+            placeholder="Pega o escribe aquí tu texto de referencia..."
+          ></textarea>
+        </fieldset>
+
+        <!-- Bloque C: Preferencias Determinísticas -->
+        <fieldset class="control-group">
+          <legend class="group-legend">C. Preferencias del Generador Determinístico</legend>
+
+          <div class="prefs-grid">
+            <div class="field-block">
+              <label for="pref-layout" class="field-label">Arquetipo de Layout</label>
+              <select id="pref-layout">
+                <option value="product-launch">Lanzamiento de Producto (Split Hero)</option>
+                <option value="editorial-studio">Estudio Editorial (Columna Asimétrica)</option>
+                <option value="technical-dashboard">Panel Técnico &amp; Telemetría</option>
+                <option value="minimal-manifesto">Manifiesto Minimalista</option>
+              </select>
+            </div>
+
+            <div class="field-block">
+              <label for="pref-palette" class="field-label">Dirección Cromática</label>
+              <select id="pref-palette">
+                <option value="auto-image">Automática (De imagen local / semilla)</option>
+                <option value="obsidian-craft">Obsidiana &amp; Ámbar Técnico (Oscuro)</option>
+                <option value="paper-blueprint">Papel Algodón &amp; Cobalto (Claro)</option>
+                <option value="mineral-sage">Salvia Mineral &amp; Terracota (Claro)</option>
+                <option value="high-contrast">Monocromo Accesible AAA</option>
+              </select>
+            </div>
+
+            <div class="field-block">
+              <label for="pref-typography" class="field-label">Sistema Tipográfico</label>
+              <select id="pref-typography">
+                <option value="sans-geometric">Geométrica Neo-Grotesque (Sistema)</option>
+                <option value="serif-editorial">Editorial Serif Clásica</option>
+                <option value="mono-technical">Monoespaciada de Ingeniería</option>
+              </select>
+            </div>
+
+            <div class="field-block">
+              <label for="pref-density" class="field-label">Densidad Espacial</label>
+              <select id="pref-density">
+                <option value="balanced">Equilibrada (Estándar)</option>
+                <option value="compact">Compacta (Alta densidad)</option>
+                <option value="spacious">Aireada (Modo Galería)</option>
+              </select>
+            </div>
+
+            <div class="field-block">
+              <label for="pref-interactive" class="field-label">Módulo Funcional Interactivo</label>
+              <select id="pref-interactive">
+                <option value="estimator">Calculadora / Simulador de Parámetros</option>
+                <option value="tabs-matrix">Matriz de Especificaciones por Pestañas</option>
+                <option value="faq-checklist">Checklist Operativo Verificable</option>
+              </select>
+            </div>
+
+            <div class="field-block">
+              <label for="pref-variant" class="field-label">Variante Determinística (#1 - #8)</label>
+              <div class="variant-stepper">
+                <input type="number" id="pref-variant" min="1" max="8" value="1" />
+                <button type="button" id="btn-next-variant" class="btn btn-small" title="Avanzar al siguiente índice determinístico">
+                  Siguiente #
+                </button>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="form-submit-row">
+          <button type="submit" id="btn-generate" class="btn btn-primary btn-full">
+            Generar variante original (NO IA)
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Panel Derecho: Preview Ejecutable Sandbox + Descarga + Inspector -->
+    <section class="panel preview-panel" aria-labelledby="preview-heading">
+      <div class="panel-header preview-toolbar">
+        <div class="toolbar-left">
+          <h2 id="preview-heading" class="panel-title">2. Prototipo Ejecutable (Sandbox)</h2>
+          <div class="view-tabs" role="tablist" aria-label="Modos de inspección del prototipo">
+            <button type="button" role="tab" aria-selected="true" id="tab-btn-preview" class="tab-pill active" data-view="preview">
+              Vista Previa
+            </button>
+            <button type="button" role="tab" aria-selected="false" id="tab-btn-code" class="tab-pill" data-view="code">
+              Código HTML
+            </button>
+            <button type="button" role="tab" aria-selected="false" id="tab-btn-audit" class="tab-pill" data-view="audit">
+              Auditoría NO IA
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <div class="viewport-switcher" role="group" aria-label="Tamaño de pantalla de vista previa">
+            <button type="button" class="vp-btn active" data-vp="desktop" title="Vista Escritorio (100%)">Escritorio</button>
+            <button type="button" class="vp-btn" data-vp="tablet" title="Vista Tablet (768px)">Tablet</button>
+            <button type="button" class="vp-btn" data-vp="mobile" title="Vista Móvil (375px)">Móvil</button>
+          </div>
+          <button type="button" id="btn-copy-html" class="btn btn-secondary btn-small">
+            Copiar HTML
+          </button>
+          <button type="button" id="btn-download-html" class="btn btn-accent btn-small">
+            Descargar HTML
+          </button>
+        </div>
+      </div>
+
+      <!-- Vista 1: Sandbox Iframe -->
+      <div id="view-preview" class="view-container active" role="tabpanel" aria-labelledby="tab-btn-preview">
+        <div class="sandbox-notice">
+          <span>Aislamiento activo: <code>&lt;iframe sandbox="allow-scripts"&gt;</code> (origen opaco, sin red, sin acceso al DOM padre ni almacenamiento).</span>
+          <span id="preview-dimensions-label">Ancho: 100%</span>
+        </div>
+        <div class="iframe-stage" id="iframe-stage" data-viewport="desktop">
+          <iframe
+            id="prototype-preview"
+            title="Vista previa ejecutable del prototipo HTML en sandbox"
+            sandbox="allow-scripts"
+            referrerpolicy="no-referrer"
+          ></iframe>
+        </div>
+      </div>
+
+      <!-- Vista 2: Código HTML -->
+      <div id="view-code" class="view-container" role="tabpanel" aria-labelledby="tab-btn-code" hidden>
+        <div class="code-header">
+          <span>Documento HTML5 autónomo listo para producción o descarga directa</span>
+          <span id="code-byte-size">0 bytes</span>
+        </div>
+        <pre class="code-block"><code id="generated-html-code"></code></pre>
+      </div>
+
+      <!-- Vista 3: Auditoría Determinística NO IA -->
+      <div id="view-audit" class="view-container" role="tabpanel" aria-labelledby="tab-btn-audit" hidden>
+        <div class="audit-grid">
+          <article class="audit-card">
+            <h3>Trazabilidad Determinística</h3>
+            <dl class="audit-list">
+              <div><dt>Huella / Fingerprint:</dt><dd id="audit-fingerprint">-</dd></div>
+              <div><dt>Semilla FNV-1a (32-bit):</dt><dd id="audit-seed">-</dd></div>
+              <div><dt>Paleta Resuelta:</dt><dd id="audit-palette">-</dd></div>
+              <div><dt>Tipografía Local:</dt><dd id="audit-typography">-</dd></div>
+              <div><dt>Módulo Interactivo:</dt><dd id="audit-interactive">-</dd></div>
+            </dl>
+          </article>
+
+          <article class="audit-card">
+            <h3>Garantías de Privacidad y Entorno</h3>
+            <ul class="audit-checks">
+              <li><strong>Etiqueta NO IA verificada:</strong> Sintetizador algorítmico local basado en reglas léxicas, colorimetría HSL y generador congruencial Mulberry32.</li>
+              <li><strong>Persistencia Cero:</strong> No se escribe en <code>localStorage</code>, <code>sessionStorage</code>, <code>IndexedDB</code> ni cookies. Al cerrar o pulsar <em>Reiniciar todo</em>, la memoria queda limpia.</li>
+              <li><strong>Cero Red / Terceros:</strong> Sin llamadas HTTP, sin fuentes web remotas ni analíticas.</li>
+              <li><strong>Nota sobre Craft Anything:</strong> Consulta el <code>README.md</code> del proyecto para el análisis de inspección real de <code>storytold/craft-anything</code> y por qué este MVP implementa un motor determinístico propio autónomo.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Craft Lab Zuzo · MVP Estático Profesional · Motor Determinístico <strong>NO IA</strong> · Sin Persistencia · Diseño Original</p>
+  </footer>
+
+  <script src="generator.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
